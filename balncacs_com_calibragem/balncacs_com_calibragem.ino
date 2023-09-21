@@ -56,18 +56,14 @@ void loop(){
     }
 
   } else {
-    Serial.print("P1  :\t");
-    Serial.print(p1, 6);
-    Serial.println("|");
-    Serial.print("P2  :\t");
+    Serial.print("P1\t");
+    Serial.print(p1);     
+    Serial.print("P2\t");
     Serial.print(p2,6);
-    Serial.println("|");
-    Serial.print("P3  :\t");
-    Serial.print(p3, 6);
-    Serial.println("|");
-    Serial.print("P4  :\t");
-    Serial.print(p4, 6);
-    Serial.println("|");
+    Serial.print("P3\t");
+    Serial.print(p3);
+    Serial.print("P4\t");
+    Serial.println(p4);
     if((millis() - temporizador)>100){
       temporizador = millis();
       ESP_BT.print(p1, DEC);
@@ -117,4 +113,3 @@ void calibrate(HX711 *myScale){
   Serial.print("Escala: ");
   Serial.println(escala);
 }
-
