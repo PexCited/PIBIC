@@ -1,0 +1,35 @@
+version: '3.7'
+services:
+  redis:
+    container_name: cache
+    image: redis:latest
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis-data:/data
+    command: redis-server --save 900 1 --save 300 10 --save 60 10000
+    networks:
+      - bind-network
+
+  broker:
+    image: eclipse-mosquitto
+    restart: always
+    privileged: true
+    volumes:
+      - ./server/mqtt/conf/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    ports:
+      - target: 1883
+        published: 1883
+        protocol: tcp
+        mode: host
+      - target: 9001
+        published: 9001
+        protocol: tcp
+        mode: host
+    networks:
+      - bind-network
+
+networks: 
+  bind-network:
+    driver: bridge
