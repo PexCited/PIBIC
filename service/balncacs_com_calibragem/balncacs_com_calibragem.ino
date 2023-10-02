@@ -4,7 +4,7 @@
 #define DOUT3  18
 #define DOUT4  17
 #define CLK   19
-#include "BluetoothSerial.h" 
+#include "BluetoothSerial.h"
 BluetoothSerial ESP_BT; 
 
 HX711 peso1;                // instancia Balança HX711

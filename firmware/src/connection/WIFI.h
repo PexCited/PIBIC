@@ -11,8 +11,15 @@
 
     String MAC_ADDRESS;
 
+    void resetToFactoryDefaults() {
+        wm.resetSettings();
+        delay(3000);
+        ESP.restart();
+    }
+
     bool config_wifi()
     {
+        // resetToFactoryDefaults();
         MAC_ADDRESS = WiFi.macAddress();
 
         WiFi.mode(WIFI_STA);

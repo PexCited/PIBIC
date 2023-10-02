@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include "carga.h"
 
 #include <string>
 
@@ -19,24 +20,22 @@ bool _CANCEL = false;
 int step = 0;
 long button = millis();
 
-string operator_name = DEFAULT_OP;
-string modelo = DEFAULT_MD;
+// string operator_name = DEFAULT_OP;
+// string modelo = DEFAULT_MD;
 
 string status_code="ok";
 bool CONFIG_COMPLETED = false;
 bool STOP_NOW = false;
 bool UPDATE = false;
 
-void IRAM_ATTR CONFIRM_ACTION();
-void IRAM_ATTR CANCEL_ACTION();
+// void IRAM_ATTR CONFIRM_ACTION();
+// void IRAM_ATTR CANCEL_ACTION();
 void callback(char *topic, byte *payload, unsigned int length) {}
 
 json make_payload(){
   json payload;
 
-  payload["operator"] = operator_name != DEFAULT_OP? operator_name : "" ;
-  payload["modelo"] = modelo != DEFAULT_MD? modelo : "";
-  payload["type"] = MODEL;
+  payload["value"] = peso1.get_units();
 
   return payload;
 
@@ -54,11 +53,14 @@ void setup() {
     config_mqtt(callback);
   #endif
 
-  attachInterrupt(CONFIRM_PIN, CONFIRM_ACTION, CHANGE);
-  attachInterrupt(CANCEL_PIN, CANCEL_ACTION, CHANGE);
+  // attachInterrupt(CONFIRM_PIN, CONFIRM_ACTION, CHANGE);
+  // attachInterrupt(CANCEL_PIN, CANCEL_ACTION, CHANGE);
 
   pinMode(CONFIRM_PIN, INPUT_PULLUP);
   pinMode(CANCEL_PIN, INPUT_PULLUP);
+
+  peso1.begin(DOUT1, CLK);
+  calibrate(&peso1);
 }
 
 void loop() {
@@ -74,17 +76,9 @@ void loop() {
   #endif
 
 
-  if(UPDATE){
-    UPDATE = false;
-    if (CONFIG_COMPLETED || STOP_NOW ){
-        //mount payload
-        Serial.println("=-=-=-=-=-=-=-=-=-=-=-=");
-        Serial.println(operator_name.c_str());
-        Serial.println(modelo.c_str());
-        Serial.println("=-=-=-=-=-=-=-=-=-=-=-=");
-        client.publish(TOPIC_CONFIG, make_payload().dump().c_str());
-        STOP_NOW = false;
-    }
+  if((millis()-temporizador)>1000){
+    client.publish(TOPIC_DATA, make_payload().dump().c_str());
+    temporizador = millis();
   }
 
 }

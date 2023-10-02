@@ -17,7 +17,7 @@ services:
     restart: always
     privileged: true
     volumes:
-      - ./server/mqtt/conf/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mqtt/conf/mosquitto.conf:/mosquitto/config/mosquitto.conf
     ports:
       - target: 1883
         published: 1883

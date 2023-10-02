@@ -11,10 +11,10 @@
     #endif
 
     #ifndef ENABLE_DCHP
-        IPAddress _ESP_IP(192, 168, 10, 220);    // *** CHANGE THIS to something relevant for YOUR LAN. ***
-        IPAddress _ESP_MASK(255, 255, 255, 0);   // Subnet mask.
-        IPAddress _ESP_DNS(192, 168, 10, 1);    // *** CHANGE THIS to match YOUR DNS server.           ***
-        IPAddress _ESP_GW(192, 168, 10, 1);   // *** CHANGE THIS to match YOUR Gateway (router).     ***
+        IPAddress _ESP_IP(192, 168, 205, 235);    // *** CHANGE THIS to something relevant for YOUR LAN,  ***
+        IPAddress _ESP_MASK(255, 255, 255, 0);   // Subnet mask, 
+        IPAddress _ESP_DNS(192, 168, 205, 1);    // *** CHANGE THIS to match YOUR DNS server,            ***
+        IPAddress _ESP_GW(192, 168, 205, 1);   // *** CHANGE THIS to match YOUR Gateway (router).     ***
     #endif
     uint8_t   _ESP_MAC[] = { 0x02, 0xF0, 0x0D, 0xBE, 0xEF, 0x50 };
 
