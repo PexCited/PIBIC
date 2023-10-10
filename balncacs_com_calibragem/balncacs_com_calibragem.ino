@@ -67,17 +67,18 @@ void loop(){
     Serial.print(",");
     Serial.print(p4);
     Serial.println(";");
-    if((millis() - temporizador)>100){
-      temporizador = millis();
-      ESP_BT.print(p1, DEC);
-      ESP_BT.print("|");
-      ESP_BT.print(p2, DEC);
-      ESP_BT.print("|");
-      ESP_BT.print(p3, DEC);
-      ESP_BT.print("|");
-      ESP_BT.print(p4, DEC);
-      ESP_BT.print("|");
-    }
+    // if((millis() - temporizador)>100){
+
+    //   temporizador = millis();
+    //   ESP_BT.print(p1, DEC);
+    //   ESP_BT.print("|");
+    //   ESP_BT.print(p2, DEC);
+    //   ESP_BT.print("|");
+    //   ESP_BT.print(p3, DEC);
+    //   ESP_BT.print("|");
+    //   ESP_BT.print(p4, DEC);
+    //   ESP_BT.print("|");
+    // }
   }
 
 }
