@@ -13,13 +13,14 @@
 
     void resetToFactoryDefaults() {
         wm.resetSettings();
-        delay(3000);
-        ESP.restart();
     }
 
     bool config_wifi()
     {
-        // resetToFactoryDefaults();
+        #ifdef RESET_WIFI
+            resetToFactoryDefaults();
+        #endif
+
         MAC_ADDRESS = WiFi.macAddress();
 
         WiFi.mode(WIFI_STA);
