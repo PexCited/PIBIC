@@ -6,6 +6,9 @@
 #define CLK   19
 
 HX711 peso1; 
+HX711 peso2; 
+HX711 peso3; 
+HX711 peso4; 
 
 long temporizador;
 int incoming;
