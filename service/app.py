@@ -1,65 +1,104 @@
 import dash
-from dash import dcc, html, Input, Output
+from dash import dcc, html, Input, Output, State
 import plotly.graph_objs as go
-import random
+import paho.mqtt.client as mqtt
+import json
+from random import randint
 
-# Inicializar a aplicação Dash
+# Configurações do MQTT
+MQTT_BROKER = "test.mosquitto.org"  # Utilizando "test.mosquitto.org"
+MQTT_PORT = 1883
+
+# Tópicos MQTT para as balanças
+MQTT_TOPICS = ["data/BALANCA/1", "data/BALANCA/2", "data/BALANCA/3", "data/BALANCA/4"]
+
+# Inicializa a aplicação Dash
 app = dash.Dash(__name__)
+
+# Dados das balanças
+dados_balancas = [[] for _ in range(len(MQTT_TOPICS))]
 
 # Layout da aplicação
 app.layout = html.Div([
     # Título "Dados"
-    html.H1('Dados', style={'text-align': 'center', 'margin-top': '20px'}),
-    # Botões Iniciar e Calibrar
-    html.Div([
-        html.Button('Iniciar', id='btn-iniciar', className='botao-verde'),
-        html.Button('Calibrar', id='btn-calibrar', className='botao-amarelo')
-    ], style={'display': 'flex', 'justify-content': 'center', 'margin-top': '20px'}),
-    # Gráfico de Barras representando as balanças
-    html.Div([
-        dcc.Graph(
-            id='grafico-barras',
-            config={'displayModeBar': False},
-            figure={
-                'data': [
-                    {'x': ['Balança 1', 'Balança 2', 'Balança 3', 'Balança 4'], 'y': [random.randint(1, 100) for _ in range(4)], 'type': 'bar', 'name': 'Balanças'}
-                ],
-                'layout': {
-                    'title': 'Balanças',
-                    'width': 500,
-                    'height': 400
-                }
-            }
-        )
-    ], style={'display': 'flex', 'justify-content': 'center', 'margin-top': '20px'}),
+    html.H1('Dados das Balanças', style={'text-align': 'center', 'margin-top': '20px'}),
 
-    # Intervalo de atualização
-    dcc.Interval(
-        id='interval-component',
-        interval=10*1000,  # Atualizar a cada 10 segundos (10*1000 milissegundos)
-        n_intervals=0
-    )
+    # Botão para iniciar medição
+    html.Button('Iniciar Medição', id='btn-iniciar-medicao', n_clicks=0, style={'margin-bottom': '10px'}),
+
+    # Gráficos de Linhas representando as balanças
+    html.Div([
+        dcc.Graph(id=f'grafico-linhas-{i}', config={'displayModeBar': False})
+        for i in range(1, len(MQTT_TOPICS) + 1)
+    ], style={'display': 'flex', 'flex-wrap': 'wrap', 'justify-content': 'center', 'margin-top': '20px'}),
+
+    # Botão para iniciar a calibração
+    html.Button('Calibrar', id='btn-iniciar-calibracao', n_clicks=0),
+
+    # Popup para mostrar mensagens e campo de entrada para peso de referência
+    html.Div(id='popup-container', style={'display': 'none'}, children=[
+        html.Div(id='popup-content', style={'border': '1px solid black', 'padding': '10px'}),
+        dcc.Input(id='input-peso-referencia', type='number', step=0.01, placeholder='Peso de Referência (g)'),
+        html.Button('OK', id='btn-popup-ok')
+    ])
 ])
 
-# Callbacks para atualização do gráfico de barras (simulação de dados aleatórios)
+# Função de callback para receber mensagens MQTT e atualizar os gráficos
+def on_message(client, userdata, message):
+    global dados_balancas
+
+    # Obtém o índice da balança com base no tópico
+    balanca_index = MQTT_TOPICS.index(message.topic)
+
+    # Decodifica a mensagem JSON
+    payload = json.loads(message.payload.decode())
+    dados_balancas[balanca_index].append(payload["valor"])
+
+    # Atualiza o gráfico correspondente
+    atualizar_grafico(balanca_index + 1)
+
+# Função para atualizar o gráfico de uma balança específica
+def atualizar_grafico(balanca_numero):
+    fig = go.Figure()
+    dados = dados_balancas[balanca_numero - 1]
+    fig.add_trace(go.Scatter(x=list(range(len(dados))), y=dados, mode='lines+markers', name=f'Balança {balanca_numero}'))
+
+    fig.update_layout(title=f'Dados da Balança {balanca_numero}', xaxis_title='Amostra', yaxis_title='Valor')
+
+    # Atualiza o gráfico no layout da aplicação
+    app.layout[f'grafico-linhas-{balanca_numero}'].figure = fig
+
+# Função de callback para iniciar a calibração e abrir o popup
 @app.callback(
-    Output('grafico-barras', 'figure'),
-    [Input('interval-component', 'n_intervals')]
+    Output('popup-container', 'style'),
+    Output('popup-content', 'children'),
+    Input('btn-iniciar-calibracao', 'n_clicks')
 )
-def atualizar_grafico(n_intervals):
-    # Atualize os dados do gráfico a cada intervalo
-    dados_aleatorios = [random.randint(1, 100) for _ in range(4)]
-    figura = go.Figure(data=[go.Bar(x=['Balança 1', 'Balança 2', 'Balança 3', 'Balança 4'], y=dados_aleatorios)])
-    figura.update_layout(title='Balanças', width=1200, height=600)
+def iniciar_calibracao(n_clicks):
+    if n_clicks > 0:
+        # Enviar comando para iniciar a calibração via MQTT
+        client.publish("comando/calibrar", "iniciar")
+        # Mensagens para exibir no popup
+        mensagens = ["Retire o peso", "Coloque o peso"]
+        popup_content = [html.P(mensagem) for mensagem in mensagens]
+        # Limpar o contador de cliques para que a função possa ser chamada novamente
+        return {'display': 'block'}, popup_content
+    else:
+        return {'display': 'none'}, []
 
-    return figura
-
-# Função para atualizar o gráfico com base nos dados recebidos
-def atualizar_grafico_com_dados_recebidos(dados):
-    figura = go.Figure(data=[go.Bar(x=['Balança 1', 'Balança 2', 'Balança 3', 'Balança 4'], y=dados)])
-    figura.update_layout(title='Balanças', width=1200, height=600)
-
-    return figura
+# Função de callback para iniciar a medição
+@app.callback(
+    Output('btn-iniciar-medicao', 'n_clicks'),
+    Input('btn-iniciar-medicao', 'n_clicks')
+)
+def iniciar_medicao(n_clicks):
+    if n_clicks > 0:
+        # Enviar comando para iniciar a medição via MQTT
+        client.publish("comando/medir", "iniciar")
+        # Limpar o contador de cliques para que a função possa ser chamada novamente
+        return 0
+    else:
+        return 0
 
 if __name__ == '__main__':
-    app.run_server(debug=True, host="0.0.0.0")
+    app.run_server(debug=True)
