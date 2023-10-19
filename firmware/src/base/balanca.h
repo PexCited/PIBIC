@@ -12,33 +12,50 @@
 using namespace std;
 using nlohmann::json;
 
-#define CONFIRM_PIN 4
-#define CANCEL_PIN  5
 
-bool _CONFIRM = false;
-bool _CANCEL = false;
-int step = 0;
-long button = millis();
+float contador = 0;
 
-// string operator_name = DEFAULT_OP;
-// string modelo = DEFAULT_MD;
+void callback(char *topic, byte *payload, unsigned int length);
+void config_callback(byte *payload, unsigned int length);
+typedef void (*callback_t)(byte*, unsigned int);
 
-string status_code="ok";
-bool CONFIG_COMPLETED = false;
-bool STOP_NOW = false;
-bool UPDATE = false;
+unordered_map<string, callback_t> callback_map = {
+    {"config", &config_callback},
+};
 
-// void IRAM_ATTR CONFIRM_ACTION();
-// void IRAM_ATTR CANCEL_ACTION();
-void callback(char *topic, byte *payload, unsigned int length) {}
+
+void callback(char *topic, byte *payload, unsigned int length) {
+    char *token = strtok(topic, "/");
+    string topic_str(token);
+    auto callback_it = callback_map.find(topic_str);
+    if(callback_it != callback_map.end()) {
+        callback_t callback_fn = callback_it->second;
+        callback_fn(payload, length);
+    } else {
+        Serial.print("Callback not found for topic: ");
+        Serial.println(topic_str.c_str());
+    }
+
+}
+
+
+void config_callback(byte *payload, unsigned int length) {
+    json config = json::parse(payload, payload + length);
+    calibrate(&peso1);
+    calibrate(&peso2);
+    calibrate(&peso3);
+    calibrate(&peso4);
+}
 
 json make_payload(){
   json payload;
 
-  payload["value"] = peso1.get_units();
+  payload["B1"] = peso1.get_units();
+  payload["B2"] = peso2.get_units();
+  payload["B3"] = peso3.get_units();
+  payload["B4"] = peso4.get_units();
 
   return payload;
-
 }
 
 void setup() {
@@ -53,14 +70,10 @@ void setup() {
     config_mqtt(callback);
   #endif
 
-  // attachInterrupt(CONFIRM_PIN, CONFIRM_ACTION, CHANGE);
-  // attachInterrupt(CANCEL_PIN, CANCEL_ACTION, CHANGE);
-
-  pinMode(CONFIRM_PIN, INPUT_PULLUP);
-  pinMode(CANCEL_PIN, INPUT_PULLUP);
-
   peso1.begin(DOUT1, CLK);
-  calibrate(&peso1);
+  peso2.begin(DOUT2, CLK);
+  peso3.begin(DOUT3, CLK);
+  peso4.begin(DOUT4, CLK);
 }
 
 void loop() {
@@ -75,10 +88,14 @@ void loop() {
     ArduinoOTA.handle();
   #endif
 
-
-  if((millis()-temporizador)>1000){
+  if(contador < 100){ // Eniva no maximo 100msg.
     client.publish(TOPIC_DATA, make_payload().dump().c_str());
+    contador ++;
+  }
+
+  if((millis()-temporizador)>1000){ // A  cada 1s reseta o contador.
     temporizador = millis();
+    contador = 0;
   }
 
 }
