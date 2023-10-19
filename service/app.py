@@ -1,17 +1,18 @@
 import dash
 from dash import dcc, html, Input, Output, State
 import plotly.graph_objs as go
-import paho.mqtt.client as mqtt
+from mqtt.main import *
 import json
+from random import randint
 
 # Configurações do MQTT
 MQTT_BROKER = "test.mosquitto.org"  # Utilizando "test.mosquitto.org"
 MQTT_PORT = 1883
+client = connect_mqtt(client_id=str(randint(100, 300)), broker="ip_do_rasp", port=1883)
+
 
 # Tópicos MQTT para as balanças
 MQTT_TOPICS = ["data/BALANCA/1", "data/BALANCA/2", "data/BALANCA/3", "data/BALANCA/4"]
-
-
 # Inicializa a aplicação Dash
 app = dash.Dash(__name__,external_stylesheets=['styles.css'])
 
@@ -106,4 +107,5 @@ def iniciar_medicao(n_clicks):
         return 0
 
 if __name__ == '__main__':
+    subscribe(client, "data/BALANCA/1", on_message)
     app.run_server(debug=True)
