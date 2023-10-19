@@ -3,7 +3,6 @@ from dash import dcc, html, Input, Output, State
 import plotly.graph_objs as go
 import paho.mqtt.client as mqtt
 import json
-from random import randint
 
 # Configurações do MQTT
 MQTT_BROKER = "test.mosquitto.org"  # Utilizando "test.mosquitto.org"
@@ -12,28 +11,34 @@ MQTT_PORT = 1883
 # Tópicos MQTT para as balanças
 MQTT_TOPICS = ["data/BALANCA/1", "data/BALANCA/2", "data/BALANCA/3", "data/BALANCA/4"]
 
+
 # Inicializa a aplicação Dash
-app = dash.Dash(__name__)
+app = dash.Dash(__name__,external_stylesheets=['styles.css'])
 
 # Dados das balanças
 dados_balancas = [[] for _ in range(len(MQTT_TOPICS))]
 
 # Layout da aplicação
 app.layout = html.Div([
-    # Título "Dados"
-    html.H1('Dados das Balanças', style={'text-align': 'center', 'margin-top': '20px'}),
+    # Título "Dados" com estilo de fonte
+    html.H1('Dados das Balanças', style={'text-align': 'center', 'margin-top': '20px', 'font-family': 'Bebas Neue'}),
 
-    # Botão para iniciar medição
-    html.Button('Iniciar Medição', id='btn-iniciar-medicao', n_clicks=0, style={'margin-bottom': '10px'}),
+    # Container centralizado com largura máxima e alinhamento ao centro
+    html.Div(className='center-container', children=[
+        # Adicione uma div para os botões com uma classe CSS para estilização
+        html.Div([
+            # Botão para iniciar medição com estilo de botão
+            html.Button('Iniciar Medição', id='btn-iniciar-medicao', n_clicks=0, style={'margin-bottom': '10px', 'background-color': 'darkgreen', 'color': 'white'}),
+            # Botão para iniciar a calibração com estilo de botão
+            html.Button('Calibrar', id='btn-iniciar-calibracao', n_clicks=0, style={'background-color': 'darkgreen', 'color': 'white'}),
+        ], className='button-container'),
+    ]),
 
     # Gráficos de Linhas representando as balanças
     html.Div([
         dcc.Graph(id=f'grafico-linhas-{i}', config={'displayModeBar': False})
         for i in range(1, len(MQTT_TOPICS) + 1)
     ], style={'display': 'flex', 'flex-wrap': 'wrap', 'justify-content': 'center', 'margin-top': '20px'}),
-
-    # Botão para iniciar a calibração
-    html.Button('Calibrar', id='btn-iniciar-calibracao', n_clicks=0),
 
     # Popup para mostrar mensagens e campo de entrada para peso de referência
     html.Div(id='popup-container', style={'display': 'none'}, children=[
