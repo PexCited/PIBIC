@@ -1,23 +1,27 @@
-import dash
-from dash import dcc, html, Input, Output, State
-import plotly.graph_objs as go
-from mqtt.main import *
 import json
+from collections import deque
 from random import randint
+import dash
+import plotly.graph_objs as go
+from dash import dcc, html, Input, Output, State
+from mqtt.main import *
+dataB1 = deque(maxlen=3)
 
+QTD_BALANCAS = 4
+
+PAYLOAD_PER_SEC = 100
+SECONDS2SHOW = 10
+GRAF_LEN = PAYLOAD_PER_SEC * SECONDS2SHOW
+
+DATAFrames = [deque(maxlen=GRAF_LEN) for _ in range(QTD_BALANCAS)]
 # Configurações do MQTT
 MQTT_BROKER = "test.mosquitto.org"  # Utilizando "test.mosquitto.org"
 MQTT_PORT = 1883
-client = connect_mqtt(client_id=str(randint(100, 300)), broker="ip_do_rasp", port=1883)
+ID = client_id=str(randint(100, 300))
+client = connect_mqtt(client_id=ID, broker=MQTT_BROKER, port=1883)
 
-
-# Tópicos MQTT para as balanças
-MQTT_TOPICS = ["data/BALANCA/1", "data/BALANCA/2", "data/BALANCA/3", "data/BALANCA/4"]
 # Inicializa a aplicação Dash
-app = dash.Dash(__name__,external_stylesheets=['styles.css'])
-
-# Dados das balanças
-dados_balancas = [[] for _ in range(len(MQTT_TOPICS))]
+app = dash.Dash(__name__, external_stylesheets=['styles.css'])
 
 # Layout da aplicação
 app.layout = html.Div([
@@ -38,7 +42,7 @@ app.layout = html.Div([
     # Gráficos de Linhas representando as balanças
     html.Div([
         dcc.Graph(id=f'grafico-linhas-{i}', config={'displayModeBar': False})
-        for i in range(1, len(MQTT_TOPICS) + 1)
+        for i in range(QTD_BALANCAS)
     ], style={'display': 'flex', 'flex-wrap': 'wrap', 'justify-content': 'center', 'margin-top': '20px'}),
 
     # Popup para mostrar mensagens e campo de entrada para peso de referência
@@ -46,33 +50,35 @@ app.layout = html.Div([
         html.Div(id='popup-content', style={'border': '1px solid black', 'padding': '10px'}),
         dcc.Input(id='input-peso-referencia', type='number', step=0.01, placeholder='Peso de Referência (g)'),
         html.Button('OK', id='btn-popup-ok')
-    ])
+    ]),
+
+    # Adicione este componente para controlar a atualização dos gráficos
+    dcc.Interval(id='interval-component', interval=PAYLOAD_PER_SEC, n_intervals=0)
 ])
 
 # Função de callback para receber mensagens MQTT e atualizar os gráficos
 def on_message(client, userdata, message):
     global dados_balancas
 
-    # Obtém o índice da balança com base no tópico
-    balanca_index = MQTT_TOPICS.index(message.topic)
-
     # Decodifica a mensagem JSON
     payload = json.loads(message.payload.decode())
-    dados_balancas[balanca_index].append(payload["valor"])
 
-    # Atualiza o gráfico correspondente
-    atualizar_grafico(balanca_index + 1)
+    for i in range(QTD_BALANCAS):
+        DATAFrames[i].append(payload.get(f"B{i+1}", -1))
 
 # Função para atualizar o gráfico de uma balança específica
-def atualizar_grafico(balanca_numero):
-    fig = go.Figure()
-    dados = dados_balancas[balanca_numero - 1]
-    fig.add_trace(go.Scatter(x=list(range(len(dados))), y=dados, mode='lines+markers', name=f'Balança {balanca_numero}'))
+@app.callback(
+    *[Output(f'grafico-linhas-{i}', 'figure') for i in range(QTD_BALANCAS)],
+    Input('interval-component', 'n_intervals'),
+)
+def atualizar_grafico(n):
+    OUTPUT = [go.Figure() for _ in range(QTD_BALANCAS)]
 
-    fig.update_layout(title=f'Dados da Balança {balanca_numero}', xaxis_title='Amostra', yaxis_title='Valor')
+    for index in range(QTD_BALANCAS):
+        OUTPUT[index].add_trace(go.Scatter(x=list(range(len(DATAFrames[index]))), y=list(DATAFrames[index]), mode='lines+markers', name=f'Balança {index+1}'))
+        OUTPUT[index].update_layout(title=f'Dados da Balança {index+1}', xaxis_title='Amostra', yaxis_title='Valor')
 
-    # Atualiza o gráfico no layout da aplicação
-    app.layout[f'grafico-linhas-{balanca_numero}'].figure = fig
+    return OUTPUT
 
 # Função de callback para iniciar a calibração e abrir o popup
 @app.callback(
@@ -83,14 +89,13 @@ def atualizar_grafico(balanca_numero):
 def iniciar_calibracao(n_clicks):
     if n_clicks > 0:
         # Enviar comando para iniciar a calibração via MQTT
-        client.publish("comando/calibrar", "iniciar")
+        client.publish("config/A", "iniciar")
         # Mensagens para exibir no popup
         mensagens = ["Retire o peso", "Coloque o peso"]
         popup_content = [html.P(mensagem) for mensagem in mensagens]
         # Limpar o contador de cliques para que a função possa ser chamada novamente
         return {'display': 'block'}, popup_content
-    else:
-        return {'display': 'none'}, []
+    return {'display': 'none'}, []
 
 # Função de callback para iniciar a medição
 @app.callback(
@@ -100,12 +105,14 @@ def iniciar_calibracao(n_clicks):
 def iniciar_medicao(n_clicks):
     if n_clicks > 0:
         # Enviar comando para iniciar a medição via MQTT
-        client.publish("comando/medir", "iniciar")
+        client.publish("medir/A", "iniciar")
         # Limpar o contador de cliques para que a função possa ser chamada novamente
-        return 0
-    else:
-        return 0
+    return 0
+
+
 
 if __name__ == '__main__':
     subscribe(client, "data/BALANCA/1", on_message)
-    app.run_server(debug=True)
+    client.loop_start()
+    #client.loop_forever()
+    app.run(debug=True)
