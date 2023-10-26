@@ -49,13 +49,9 @@ void config_callback(byte *payload, unsigned int length) {
 
 json make_payload(){
   json payload;
-
-  float valor_B2 = analogRead(A0);
-
-  payload["B2"] = valor_B2;
-
+  Serial.println("Aqui");
   payload["B1"] = peso1.get_units();
-  //payload["B2"] = peso2.get_units();
+  payload["B2"] = peso2.get_units();
   payload["B3"] = peso3.get_units();
   payload["B4"] = peso4.get_units();
 

@@ -5,12 +5,11 @@ import dash
 import plotly.graph_objs as go
 from dash import dcc, html, Input, Output, State
 from mqtt.main import *
-dataB1 = deque(maxlen=3)
 
 QTD_BALANCAS = 4
 
 PAYLOAD_PER_SEC = 100
-SECONDS2SHOW = 10
+SECONDS2SHOW = 5
 GRAF_LEN = PAYLOAD_PER_SEC * SECONDS2SHOW
 
 DATAFrames = [deque(maxlen=GRAF_LEN) for _ in range(QTD_BALANCAS)]
@@ -115,4 +114,4 @@ if __name__ == '__main__':
     subscribe(client, "data/BALANCA/1", on_message)
     client.loop_start()
     #client.loop_forever()
-    app.run(debug=True)
+    app.run(host="192.168.0.207",debug=True)
