@@ -1,3 +1,32 @@
- .h1   {
-    color: pink;
- }
+/* Defina o estilo do background da tela */
+body {
+   background-color: rgb(194, 0, 65); /* Use a cor de roxo pastel que desejar */
+   margin: 0; /* Remova a margem padrão para preencher toda a tela */
+   padding: 0; /* Remova o preenchimento padrão para preencher toda a tela */
+}
+
+/* Estilo para a barra lateral */
+.menu-lateral {
+   width: 200px;
+   height: 100%;
+   position: fixed;
+   background-color: rgb(229, 57, 232);
+   color: chocolate;
+   padding: 20px;
+   right: 0;
+   top: 0;
+   overflow-y: auto;
+}
+
+.menu-lateral a {
+   display: block;
+   margin-bottom: 10px;
+   text-decoration: none;
+   color: #333;
+}
+
+/* Estilo para o conteúdo principal */
+.conteudo-principal {
+   margin-right: 220px;
+   padding: 20px;
+}
