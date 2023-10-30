@@ -111,4 +111,4 @@ def iniciar_medicao(n_clicks):
 if __name__ == '__main__':
     subscribe(client, "data/BALANCA/1", on_message)
     client.loop_start()
-    app.run(host="192.168.197.232", debug=True)
+    app.run(host="10.97.241.241", debug=True)
