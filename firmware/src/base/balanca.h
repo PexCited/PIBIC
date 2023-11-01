@@ -15,6 +15,13 @@ using nlohmann::json;
 
 float contador = 0;
 
+bool medindo = false;
+bool calibrando = false;
+bool calibrado = false;
+string _status = "iniciando...";
+
+json info;
+
 void callback(char *topic, byte *payload, unsigned int length);
 void config_callback(byte *payload, unsigned int length);
 typedef void (*callback_t)(byte*, unsigned int);
@@ -41,10 +48,20 @@ void callback(char *topic, byte *payload, unsigned int length) {
 
 void config_callback(byte *payload, unsigned int length) {
     json config = json::parse(payload, payload + length);
-    calibrate(&peso1);
-    calibrate(&peso2);
-    calibrate(&peso3);
-    calibrate(&peso4);
+    if(config["calibrar"]){
+      // como calibrate é bloqueante, a menos que esteja rodando em outro nucleo, o status não vai atualizar.
+      calibrando = true;
+      calibrate(&peso1);
+      calibrate(&peso2);
+      calibrate(&peso3);
+      calibrate(&peso4);
+      calibrando = false;
+      calibrado = true;
+    }else if (config["confirm"])
+    {
+      medindo = !medindo;
+    }
+    
 }
 
 json make_payload(){
@@ -87,15 +104,29 @@ void loop() {
   #ifdef ENABLE_OTA
     ArduinoOTA.handle();
   #endif
+  info = {
+        {"calibrando", calibrando},
+        {"calibrado", calibrado},
+        {"medindo", medindo},
+        {"status", _status},
 
-  if(contador < 100){ // Eniva no maximo 100msg.
-    client.publish(TOPIC_DATA, make_payload().dump().c_str());
-    contador ++;
+  };
+  if (peso1.is_ready() && peso2.is_ready() && peso3.is_ready() && peso4.is_ready()){
+    _status = "OK.";
+  }else{
+    _status = "Em falha: Alguma balança está desconectada.";
   }
 
-  if((millis()-temporizador)>1000){ // A  cada 1s reseta o contador.
-    temporizador = millis();
-    contador = 0;
+  if(medindo){
+    if(contador < 100){ // Eniva no maximo 100msg.
+      client.publish(TOPIC_DATA, make_payload().dump().c_str());
+      contador ++;
+    }
+
+    if((millis()-temporizador)>1000){ // A  cada 1s reseta o contador.
+      temporizador = millis();
+      contador = 0;
+    }
   }
 
 }

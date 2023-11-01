@@ -88,7 +88,7 @@ def atualizar_grafico(n):
 def iniciar_calibracao(n_clicks):
     if n_clicks > 0:
         # Enviar comando para iniciar a calibração via MQTT
-        client.publish("config/A", "iniciar")
+        client.publish("config/BALANCA/1", {"iniciar":True, "clibrar":False})
         # Mensagens para exibir no popup
         mensagens = ["Retire o peso", "Coloque o peso"]
         popup_content = [html.P(mensagem) for mensagem in mensagens]
@@ -104,7 +104,7 @@ def iniciar_calibracao(n_clicks):
 def iniciar_medicao(n_clicks):
     if n_clicks > 0:
         # Enviar comando para iniciar a medição via MQTT
-        client.publish("medir/A", "iniciar")
+        client.publish("config/BALANCA/1", {"iniciar":True, "clibrar":False})
         # Limpar o contador de cliques para que a função possa ser chamada novamente
     return 0
 
